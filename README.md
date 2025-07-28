@@ -1,85 +1,89 @@
-# PDF Outline Extractor for Adobe Hackathon Round 1A
+# PDF Outline Extractor
 
-Welcome! This tool helps you turn any PDF into a neat, structured outline—perfect for quick navigation and downstream processing in your hackathon project.
-
-## ✨ What It Does
-
-* **Title Discovery**: Grabs the title from PDF metadata or finds the biggest text on page 1.
-* **Heading Detection**: Spots H1, H2, and H3 headings using font sizes, numbering (e.g., "1.2"), and simple layout cues.
-* **Blazing Fast**: Processes up to 50 pages in under 10 seconds on a CPU-only setup.
-* **Dockerized**: Package everything in a small (< 200 MB) Docker container. No internet needed.
-
-## 🚀 Getting Started
-
-1. **Clone this repo**
-
-   ```bash
-   git clone git@github.com:your_org/your_repo.git
-   cd your_repo
-   ```
-
-2. **Make folders**
-
-   ```bash
-   mkdir input output
-   ```
-
-3. **Drop PDFs** into `input/` (e.g., `sample.pdf`).
-
-4. **Build the Docker image**
-
-   ```bash
-   docker build --platform=linux/amd64 -t outline-extractor .
-   ```
-
-5. **Run the extractor**
-
-   ```bash
-   docker run --rm \
-     -v ${PWD}/input:/app/input \
-     -v ${PWD}/output:/app/output \
-     --network none \
-     outline-extractor
-   ```
-
-6. **Check `output/`** for `.json` files matching your PDFs.
-
-## 🔍 How It Works (Under the Hood)
-
-1. **Title Detection**
-
-   * Tries PDF metadata first.
-   * If missing, picks the largest-font text block on page 1.
-
-2. **Finding the Body Font Size**
-
-   * Scans all pages to find the most common font size (the body text size).
-
-3. **Heading Levels**
-
-   * **H1**: Any span ≥ body + 3 pt.
-   * **H2**: Any span ≥ body + 1.5 pt.
-   * **H3**: Derived from numbering patterns (e.g., “2.1.3”) or bold/indent cues.
-
-4. **Output JSON**
-
-   ```json
-   {
-     "title": "<your title>",
-     "outline": [
-       { "level": "H1", "text": "Introduction", "page": 1 },
-       { "level": "H2", "text": "Background", "page": 2 },
-       { "level": "H3", "text": "History", "page": 3 }
-     ]
-   }
-   ```
-
-## 🛠️ Tips & Tricks
-
-* **Customize thresholds** in `outline_extractor.py` if your PDFs use unusual font sizing.
-* **Test different PDFs**: multi-column layouts, no metadata, etc.
-* **Performance**: If you hit > 10 s on large docs, add early-exit skips for pages without big fonts.
+A step-by-step guide to run the PDF outline extraction program from scratch.
 
 ---
 
-Happy hacking! 🚀 Feel free to tweak the code to match your PDF quirks and reach out if you need help.
+## 1. Clone the repository
+
+```bash
+git clone <your_repo_url>
+cd <your_repo_dir>
+```
+
+## 2. Create input and output folders
+
+```bash
+mkdir -p input output
+```
+
+## 3. Add PDF files to the input folder
+
+```bash
+# Copy or move your PDFs into the input/ directory
+# Example:
+cp /path/to/your/file.pdf input/
+```
+
+## 4. (Option 1) Run with Docker (Recommended)
+
+```bash
+docker build --platform=linux/amd64 -t outline-extractor .
+docker run --rm \
+  -v "${PWD}/input:/app/input" \
+  -v "${PWD}/output:/app/output" \
+  --network none \
+  outline-extractor
+```
+
+## 5. (Option 2) Run with Python directly
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python outline_extractor.py -i input -o output -j 2 -t --thumb-size 300 400
+```
+
+## 6. Check the output
+
+```bash
+ls output/*.json
+ls output/thumbnails/*.jpg  # If thumbnails were enabled
+cat output/stats.json       # View summary statistics
+```
+
+---
+
+## (Optional) Command-line options
+
+- `-i`, `--input-dir`: Input folder (default: `input`)
+- `-o`, `--output-dir`: Output folder (default: `output`)
+- `-j`, `--jobs`: Number of parallel workers (default: 1, use 0 for all CPUs)
+- `-t`, `--thumbnails`: Generate thumbnails (saved in `output/thumbnails/`)
+- `--thumb-size W H`: Thumbnail size in pixels (default: 300x400)
+
+---
+
+## Example output
+
+```json
+{
+  "source_file": "sample1.pdf",
+  "title": "50 page sample PDF.indd",
+  "outline": [
+    { "level": "H1", "text": "[Citation Needed]", "page": 3 },
+    { "level": "H2", "text": "Boring Legal Fine Print", "page": 4 }
+    
+  ],
+  "thumbnail": "thumbnails/sample1.jpg"
+}
+```
+
+```json
+{
+  "num_docs": 2,
+  "total_headings": 66,
+  "avg_headings_per_doc": 33.0
+}
+```
